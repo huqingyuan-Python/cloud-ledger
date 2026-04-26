@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>云端玻璃账本 Ultra AI Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --income: #4cd964;
+            --expense: #ff3b30;
+            --spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            --gentle: cubic-bezier(0.16, 1, 0.3, 1);
+            --warn: #ff9500;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.98); filter: blur(10px); }
+            to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.7); opacity: 0; }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,149,0,0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(255,149,0,0); }
+        }
+
+        body {
+            font-family: 'MiSans', -apple-system, sans-serif;
+            margin: 0; padding: 0;
+            background: url('/background.png') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh; color: #fff;
+            display: flex; justify-content: center;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body::before {
+            content: ""; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 70% 20%, rgba(255,255,255,0.05), transparent), rgba(0, 0, 0, 0.72); z-index: -1;
+        }
+
+        .container { 
+            width: 100%; max-width: 500px; 
+            padding: calc(20px + env(safe-area-inset-top)) 18px calc(40px + env(safe-area-inset-bottom)) 18px;
+            box-sizing: border-box; display: flex; flex-direction: column; gap: 16px;
+        }
+
+        .card {
+            background: var(--glass); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
+            border: 1px solid var(--glass-border); border-radius: 28px; padding: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.45); position: relative;
+            animation: fadeInUp 0.8s var(--gentle) both;
+        }
+
+        /* 顶部控制组 */
+        .tab-group { display: flex; background: rgba(0,0,0,0.3); border-radius: 14px; padding: 4px; gap: 4px; }
+        .tab-btn { 
+            flex: 1; border: none; background: transparent; color: rgba(255,255,255,0.35);
+            padding: 8px 0; border-radius: 10px; font-size: 0.72rem; cursor: pointer; transition: 0.3s;
+        }
+        .tab-btn.active { background: rgba(255,255,255,0.12); color: #fff; }
+
+        .balance-num { font-size: 2.5rem; font-weight: 800; letter-spacing: -1.2px; margin: 4px 0; }
+
+        /* 目标显示区域增强 */
+        .goal-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; }
+        .goal-label { font-size: 0.95rem; font-weight: 700; opacity: 0.9; }
+        .goal-percent-tag { 
+            background: rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 20px;
+            font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; color: #007aff;
+            border: 1px solid rgba(0,122,255,0.2);
+        }
+
+        .progress-bg { height: 10px; background: rgba(0,0,0,0.3); border-radius: 20px; overflow: hidden; margin: 12px 0 18px 0; border: 1px solid rgba(255,255,255,0.03); }
+        .progress-bar { 
+            height: 100%; background: linear-gradient(90deg, #007aff, #00f2ff); 
+            width: 0%; transition: width 1.5s var(--spring); 
+            box-shadow: 0 0 12px rgba(0,122,255,0.6);
+        }
+
+        /* 月度预算进度条 */
+        .budget-progress-bg { height: 8px; background: rgba(0,0,0,0.3); border-radius: 20px; overflow: hidden; margin: 8px 0 4px 0; }
+        .budget-progress-bar {
+            height: 100%; border-radius: 20px; transition: width 1s var(--spring), background 0.5s;
+            background: var(--income);
+        }
+
+        /* 磨砂玻璃输入框与按钮 */
+        .goal-input-row { display: flex; gap: 10px; }
+        input, select { 
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); 
+            border-radius: 14px; padding: 12px 14px; color: #fff; outline: none; transition: 0.3s;
+            font-size: 0.85rem;
+        }
+        input:focus { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+
+        /* 磨砂玻璃设定按钮 */
+        .btn-glass-set {
+            background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 14px;
+            color: #fff; font-size: 0.8rem; font-weight: 600; padding: 0 18px;
+            cursor: pointer; transition: all 0.3s var(--spring);
+            white-space: nowrap;
+        }
+        .btn-glass-set:hover { background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.3); }
+        .btn-glass-set:active { transform: scale(0.92); opacity: 0.8; }
+
+        /* 记账键盘与按钮 */
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+        .key { 
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.04); 
+            border-radius: 20px; padding: 18px; color: #fff; font-size: 1.2rem; cursor: pointer; 
+        }
+        .key:active { background: rgba(255,255,255,0.1); transform: scale(0.88); }
+
+        .btn-main { 
+            flex: 1; padding: 18px; border-radius: 24px; border: none; color: #fff; font-weight: bold;
+            cursor: pointer; transition: 0.3s var(--spring);
+        }
+        .btn-main:active { transform: scale(0.96); }
+
+        /* 流水项 */
+        .item { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+            cursor: pointer;
+            animation: slideDown 0.3s var(--gentle) both;
+        }
+        .item:active { opacity: 0.6; }
+        .item-date-group {
+            font-size: 0.65rem; color: rgba(255,255,255,0.25); font-weight: 600;
+            letter-spacing: 1px; margin: 8px 0 2px 0; padding-bottom: 4px;
+        }
+
+        /* 分类柱状图 */
+        .cat-stat-item { margin: 6px 0; }
+        .cat-stat-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .cat-stat-label-left { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+        .cat-stat-bar-bg { height: 6px; background: rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; }
+        .cat-stat-bar { height: 100%; border-radius: 10px; transition: width 0.8s var(--gentle); }
+
+        /* 月份对比 */
+        .compare-row { display: flex; justify-content: space-around; text-align: center; margin-top: 4px; }
+        .compare-col h4 { margin: 0 0 4px 0; font-size: 0.75rem; opacity: 0.4; font-weight: 600; }
+        .compare-col p { margin: 0; font-size: 1rem; font-weight: 700; }
+        .compare-col .trend { font-size: 0.7rem; margin-top: 2px; }
+        .up { color: var(--income); }
+        .down { color: var(--expense); }
+
+        /* 搜索栏 */
+        .search-bar {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px; padding: 10px 14px; color: #fff; outline: none;
+            font-size: 0.85rem; width: 100%; box-sizing: border-box;
+        }
+        .search-bar::placeholder { color: rgba(255,255,255,0.25); }
+
+        /* 筛选标签 */
+        .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+        .chip {
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px; padding: 5px 12px; font-size: 0.7rem; cursor: pointer;
+            transition: all 0.2s; color: rgba(255,255,255,0.5);
+        }
+        .chip.active {
+            background: rgba(0,122,255,0.2); border-color: rgba(0,122,255,0.4);
+            color: #fff;
+        }
+        .chip:hover { background: rgba(255,255,255,0.1); }
+
+        /* 定期记一笔 */
+        .recurring-badge {
+            background: rgba(255,149,0,0.15); border: 1px solid rgba(255,149,0,0.3);
+            color: var(--warn); font-size: 0.6rem; padding: 2px 6px; border-radius: 8px;
+            margin-left: 6px; font-weight: 600;
+        }
+
+        /* Toast提示 */
+        .toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(20px);
+            color: #fff; padding: 12px 24px; border-radius: 14px; font-size: 0.85rem;
+            z-index: 3000; opacity: 0; transition: opacity 0.3s; pointer-events: none;
+            white-space: nowrap;
+        }
+        .toast.show { opacity: 1; }
+
+        /* 预算超标警告 */
+        .budget-warn {
+            animation: pulse 1.5s infinite;
+            border-color: rgba(255,149,0,0.4) !important;
+        }
+
+        /* section折叠 */
+        .section-toggle {
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; padding: 4px 0;
+        }
+        .section-toggle h3 { margin: 0; font-size: 0.85rem; font-weight: bold; opacity: 0.6; }
+        .section-toggle .arrow { transition: transform 0.3s; font-size: 0.7rem; opacity: 0.4; }
+        .section-toggle.open .arrow { transform: rotate(180deg); }
+        .section-content { margin-top: 12px; }
+        .section-content.collapsed { display: none; }
+
+        .celebration-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.88); backdrop-filter: blur(30px);
+            z-index: 2000; display: none; flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        /* 备份提示 */
+        .backup-tip {
+            font-size: 0.7rem; opacity: 0.3; text-align: center; margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="celebration" class="celebration-overlay">
+    <div style="text-align:center; animation: fadeInUp 0.7s var(--spring) both;">
+        <div style="font-size: 4rem;">💎</div>
+        <h2 style="color: #ffd700; margin: 10px 0;">愿望完美达成</h2>
+        <p id="congrats-text" style="opacity: 0.7; font-size: 0.95rem; margin-bottom: 30px; line-height: 1.6;"></p>
+        <button class="btn-main" style="background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; padding: 15px 60px; border-radius: 30px;" onclick="clearGoal()">收下这份快乐</button>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<div class="container">
+    <!-- 顶部工具栏 -->
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="tab-group" style="width: 150px;">
+            <button class="tab-btn active" onclick="switchRange('week', this)">本周</button>
+            <button class="tab-btn" onclick="switchRange('month', this)">本月</button>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button class="tab-btn" style="width: 40px; background: rgba(255,255,255,0.05);" onclick="exportToExcel()" title="导出Excel">📊</button>
+            <button class="tab-btn" style="width: 40px; background: rgba(255,255,255,0.05);" onclick="exportBackup()" title="备份数据">💾</button>
+            <button class="tab-btn" style="width: 40px; background: rgba(255,255,255,0.05);" onclick="document.getElementById('importFile').click()" title="导入备份">📂</button>
+            <input type="file" id="importFile" accept=".json" style="display:none" onchange="importBackup(event)">
+            <button class="tab-btn" style="width: 40px; background: rgba(255,255,255,0.05);" onclick="clearAllData()" title="清空数据">🗑️</button>
+        </div>
+    </div>
+
+    <!-- 概览卡片 -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <div style="font-size:0.65rem; opacity:0.4; letter-spacing: 2px;">TOTAL NET WORTH</div>
+                <div class="balance-num" id="total-val">0.00</div>
+            </div>
+            <div style="width: 65px; height: 65px;"><canvas id="pieChart"></canvas></div>
+        </div>
+        <div style="height: 50px; margin-top: 8px;"><canvas id="lineChart"></canvas></div>
+        <!-- 月度预算 -->
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.05);">
+            <div class="goal-header">
+                <span class="goal-label" id="budget-label">💸 月度预算</span>
+                <span id="budget-status" style="font-size:0.75rem; font-family:'JetBrains Mono',monospace;"></span>
+            </div>
+            <div class="budget-progress-bg" id="budget-bar-bg">
+                <div class="budget-progress-bar" id="budget-progress-bar"></div>
+            </div>
+            <div class="goal-input-row" style="margin-top: 10px;">
+                <input type="number" id="budget-in" placeholder="本月预算上限" style="flex:1;" min="0" step="0.01">
+                <button class="btn-glass-set" onclick="setBudget()">设定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 月份对比 -->
+    <div class="card">
+        <div class="compare-row" id="compare-row">
+            <div class="compare-col">
+                <h4>上月收入</h4>
+                <p id="last-income">-</p>
+            </div>
+            <div class="compare-col">
+                <h4>上月支出</h4>
+                <p id="last-expense">-</p>
+            </div>
+            <div class="compare-col">
+                <h4>本月同比</h4>
+                <p id="month-trend">-</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 目标卡片 -->
+    <div class="card">
+        <div class="goal-header">
+            <span id="goal-display-name" class="goal-label">🎯 梦想目标</span>
+            <span id="goal-display-status" class="goal-percent-tag">0.0%</span>
+        </div>
+        <div class="progress-bg"><div class="progress-bar" id="goal-progress-bar"></div></div>
+        <div class="goal-input-row">
+            <input type="text" id="goal-name-in" placeholder="目标产品" style="flex:1.5;">
+            <input type="number" id="goal-amt-in" placeholder="金额" style="flex:1;">
+            <button class="btn-glass-set" onclick="setGoal()">设定</button>
+        </div>
+    </div>
+
+    <!-- 分类统计 -->
+    <div class="card" id="cat-stat-card">
+        <div class="section-toggle open" onclick="toggleSection(this)">
+            <h3>📊 分类支出统计</h3>
+            <span class="arrow">▼</span>
+        </div>
+        <div class="section-content" id="cat-stat-content">
+            <canvas id="catBarChart" height="160"></canvas>
+        </div>
+    </div>
+
+    <!-- 记账区 -->
+    <div class="card">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; gap:10px;">
+                <select id="cat" style="flex:0.8;">
+                    <option value="🍔|餐饮">🍔 餐饮</option>
+                    <option value="🛍️|购物">🛍️ 购物</option>
+                    <option value="🚗|交通">🚗 交通</option>
+                    <option value="🎮|娱乐">🎮 娱乐</option>
+                    <option value="🏠|居住">🏠 居住</option>
+                    <option value="💊|医疗">💊 医疗</option>
+                    <option value="📚|教育">📚 教育</option>
+                    <option value="☕|日用">☕ 日用</option>
+                    <option value="💰|收入">💰 收入</option>
+                </select>
+                <input type="text" id="desc" placeholder="写点备注..." style="flex:1.2;">
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.7rem; opacity:0.5; cursor:pointer;">
+                    <input type="checkbox" id="recurring-check" style="width:14px; height:14px; accent-color:#ff9500;">
+                    定期支出
+                </label>
+            </div>
+            <div style="background:rgba(0,0,0,0.2); padding:18px; border-radius:22px; text-align:right;">
+                <span id="display-amt" style="font-size:2.2rem; font-weight:800; font-family:'JetBrains Mono', monospace;">¥ 0.00</span>
+            </div>
+            <div class="keypad" id="kb"></div>
+            <div style="display:flex; gap:12px;">
+                <button class="btn-main" style="background: var(--income); box-shadow: 0 8px 20px rgba(76,217,100,0.2);" onclick="save('income')">存入</button>
+                <button class="btn-main" style="background: var(--expense); box-shadow: 0 8px 20px rgba(255,59,48,0.2);" onclick="save('expense')">支出</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 搜索过滤 -->
+    <div class="card" style="padding-bottom: 12px;">
+        <input type="text" class="search-bar" id="search-input" placeholder="🔍 搜索备注、分类..." oninput="renderList()">
+        <div class="filter-chips" id="filter-chips"></div>
+        <div style="font-size:0.7rem; opacity:0.25; margin-top: 4px; display:flex; justify-content:space-between;">
+            <span id="record-count"></span>
+            <span style="cursor:pointer;" onclick="clearFilters()">清除筛选</span>
+        </div>
+    </div>
+
+    <!-- 流水列表 -->
+    <div class="card" style="padding-top: 15px;">
+        <div style="font-size:0.85rem; font-weight:bold; margin-bottom:10px; opacity:0.6;">RECENT RECORDS</div>
+        <div class="list-container" id="list"></div>
+    </div>
+
+    <div class="backup-tip">💡 数据存储在本地，请定期使用 💾 备份功能导出 JSON</div>
+</div>
+
+<script>
+    let db = [];
+    let inputStr = "";
+    let goal = { name: "", amount: 0, achieved: false };
+    let budget = { amount: 0 };
+    let lineChart, pieChart, catBarChart;
+    let currentRange = 'week';
+    let activeFilter = null;
+    let searchQuery = "";
+
+    const CAT_COLORS = {
+        '餐饮': '#ff6b6b', '购物': '#feca57', '交通': '#48dbfb',
+        '娱乐': '#ff9ff3', '居住': '#54a0ff', '医疗': '#5f27cd',
+        '教育': '#00d2d3', '日用': '#b8e994', '收入': '#4cd964'
+    };
+
+    async function init() {
+        const res = await fetch('/get_data');
+        const data = await res.json();
+        db = Array.isArray(data) ? data : (data.db || []);
+        db.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        const savedGoal = localStorage.getItem('finance_goal');
+        if(savedGoal) goal = JSON.parse(savedGoal);
+
+        const savedBudget = localStorage.getItem('finance_budget');
+        if(savedBudget) budget = JSON.parse(savedBudget);
+        if(budget.amount) document.getElementById('budget-in').value = budget.amount;
+
+        renderKB();
+        renderFilterChips();
+        refresh();
+    }
+
+    function toggleSection(el) {
+        el.classList.toggle('open');
+        el.nextElementSibling.classList.toggle('collapsed');
+    }
+
+    function switchRange(range, btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentRange = range;
+        refresh();
+    }
+
+    function setGoal() {
+        const name = document.getElementById('goal-name-in').value;
+        const amt = parseFloat(document.getElementById('goal-amt-in').value);
+        if(!name || !amt) return;
+        goal = { name, amount: amt, achieved: false };
+        localStorage.setItem('finance_goal', JSON.stringify(goal));
+        refresh();
+    }
+
+    function clearGoal() {
+        goal = { name: "", amount: 0, achieved: false };
+        localStorage.removeItem('finance_goal');
+        document.getElementById('celebration').style.display = "none";
+        document.getElementById('goal-name-in').value = "";
+        document.getElementById('goal-amt-in').value = "";
+        refresh();
+    }
+
+    function setBudget() {
+        const amt = parseFloat(document.getElementById('budget-in').value);
+        if(!amt || amt <= 0) {
+            budget = { amount: 0 };
+            localStorage.removeItem('finance_budget');
+        } else {
+            budget = { amount: amt };
+            localStorage.setItem('finance_budget', JSON.stringify(budget));
+        }
+        refresh();
+        showToast(amt ? `月度预算已设为 ¥${amt.toFixed(2)}` : '月度预算已清除');
+    }
+
+    async function deleteItem(id) {
+        db = db.filter(i => i.id !== id);
+        await syncDB();
+        refresh();
+    }
+
+    async function save(type) {
+        const amt = parseFloat(inputStr);
+        if(!amt) return;
+        const catInfo = document.getElementById('cat').value.split('|');
+        const isRecurring = document.getElementById('recurring-check').checked;
+        db.unshift({
+            id: Date.now(),
+            emoji: catInfo[0],
+            catName: catInfo[1],
+            desc: document.getElementById('desc').value || "未备注",
+            amount: type === 'income' ? amt : -amt,
+            date: new Date().toISOString(),
+            recurring: isRecurring && type === 'expense'
+        });
+        await syncDB();
+        inputStr = "";
+        document.getElementById('display-amt').innerText = "¥ 0.00";
+        document.getElementById('desc').value = "";
+        document.getElementById('recurring-check').checked = false;
+        refresh();
+        showToast(`${type === 'income' ? '💰 存入' : '📤 支出'} ¥${amt.toFixed(2)}`);
+    }
+
+    function renderFilterChips() {
+        const cats = [...new Set(db.map(i => i.catName))];
+        const chips = document.getElementById('filter-chips');
+        chips.innerHTML = cats.map(c => {
+            const emoji = db.find(i => i.catName === c)?.emoji || '📝';
+            return `<span class="chip${activeFilter === c ? ' active' : ''}" onclick="toggleFilter('${c}')">${emoji} ${c}</span>`;
+        }).join('');
+    }
+
+    function toggleFilter(cat) {
+        activeFilter = activeFilter === cat ? null : cat;
+        renderFilterChips();
+        renderList();
+    }
+
+    function clearFilters() {
+        activeFilter = null;
+        searchQuery = "";
+        document.getElementById('search-input').value = "";
+        renderFilterChips();
+        renderList();
+    }
+
+    function getFilteredDB() {
+        let filtered = db;
+        if(activeFilter) filtered = filtered.filter(i => i.catName === activeFilter);
+        if(searchQuery) {
+            const q = searchQuery.toLowerCase();
+            filtered = filtered.filter(i =>
+                i.desc.toLowerCase().includes(q) ||
+                i.catName.toLowerCase().includes(q)
+            );
+        }
+        return filtered;
+    }
+
+    function renderList() {
+        const list = document.getElementById('list');
+        const filtered = getFilteredDB();
+        const rangeFiltered = getRangeFilteredDB();
+        document.getElementById('record-count').innerText = `共 ${filtered.length} 条记录`;
+
+        list.innerHTML = "";
+        let lastDate = "";
+
+        filtered.forEach(item => {
+            const itemDate = new Date(item.date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', weekday: 'short' });
+            if(itemDate !== lastDate) {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'item-date-group';
+                groupDiv.innerText = itemDate;
+                list.appendChild(groupDiv);
+                lastDate = itemDate;
+            }
+
+            const div = document.createElement('div');
+            div.className = 'item';
+            div.onclick = () => deleteItem(item.id);
+            const recurringBadge = item.recurring ? '<span class="recurring-badge">定期</span>' : '';
+            div.innerHTML = `<div style="display:flex; align-items:center; gap:10px;"><div style="font-size:1.1rem; padding:8px; background:rgba(255,255,255,0.05); border-radius:12px;">${item.emoji}</div><div><h4 style="margin:0; font-size:0.75rem;">${item.catName}${recurringBadge}</h4><p style="margin:0; font-size:0.55rem; opacity:0.3;">${item.desc}</p></div></div><div style="font-weight:bold; font-size:0.9rem; color:${item.amount > 0 ? 'var(--income)' : 'var(--expense)'}">${item.amount > 0 ? '+' : ''}${item.amount.toFixed(2)}</div>`;
+            list.appendChild(div);
+        });
+
+        if(filtered.length === 0) {
+            list.innerHTML = '<div style="text-align:center; opacity:0.2; padding:30px 0; font-size:0.85rem;">暂无记录</div>';
+        }
+    }
+
+    function getRangeFilteredDB() {
+        const now = new Date();
+        const days = currentRange === 'week' ? 7 : 30;
+        return db.filter(i => (now - new Date(i.date)) / 86400000 <= days);
+    }
+
+    function refresh() {
+        renderList();
+        renderFilterChips();
+
+        const rangeFiltered = getRangeFilteredDB();
+        let total = 0;
+        let monthExpense = 0;
+        const now = new Date();
+        const thisMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+
+        db.forEach(item => {
+            total += item.amount;
+            const itemMonth = item.date.substring(0, 7);
+            if(itemMonth === thisMonth && item.amount < 0) monthExpense += Math.abs(item.amount);
+        });
+
+        animateValue("total-val", parseFloat(document.getElementById('total-val').innerText.replace(/,/g,'')) || 0, total, 800);
+
+        // 月度预算
+        if(budget.amount > 0) {
+            const pct = Math.min(100, (monthExpense / budget.amount) * 100);
+            const bar = document.getElementById('budget-progress-bar');
+            bar.style.width = pct + '%';
+            bar.style.background = pct > 100 ? 'var(--expense)' : pct > 80 ? 'var(--warn)' : 'var(--income)';
+            const barBg = document.getElementById('budget-bar-bg');
+            if(pct > 100) barBg.classList.add('budget-warn');
+            else barBg.classList.remove('budget-warn');
+            document.getElementById('budget-status').innerText = `¥${monthExpense.toFixed(2)} / ¥${budget.amount.toFixed(2)}`;
+            document.getElementById('budget-status').style.color = pct > 100 ? 'var(--expense)' : pct > 80 ? 'var(--warn)' : 'var(--income)';
+            if(pct > 100) showToast('⚠️ 月度预算已超支！', 3000);
+        } else {
+            document.getElementById('budget-progress-bar').style.width = '0%';
+            document.getElementById('budget-status').innerText = '';
+        }
+
+        // 目标
+        if(goal.amount > 0) {
+            document.getElementById('goal-display-name').innerText = "🎯 " + goal.name;
+            const percent = Math.min(100, Math.max(0, (total / goal.amount) * 100));
+            document.getElementById('goal-progress-bar').style.width = percent + "%";
+            document.getElementById('goal-display-status').innerText = percent.toFixed(1) + "%";
+
+            if(total >= goal.amount && !goal.achieved) {
+                goal.achieved = true;
+                localStorage.setItem('finance_goal', JSON.stringify(goal));
+                document.getElementById('congrats-text').innerText = `已攒够金币 ¥${total.toFixed(2)}！\n你的【${goal.name}】正在向你招手。`;
+                document.getElementById('celebration').style.display = "flex";
+            }
+        } else {
+            document.getElementById('goal-display-name').innerText = "🎯 梦想目标";
+            document.getElementById('goal-progress-bar').style.width = "0%";
+            document.getElementById('goal-display-status').innerText = "0.0%";
+        }
+
+        refreshCharts();
+        refreshCompare();
+    }
+
+    function refreshCompare() {
+        const now = new Date();
+        const thisMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthStr = lastMonth.getFullYear() + '-' + String(lastMonth.getMonth() + 1).padStart(2, '0');
+
+        let thisIncome = 0, thisExpense = 0;
+        let lastIncome = 0, lastExpense = 0;
+
+        db.forEach(i => {
+            const m = i.date.substring(0, 7);
+            if(m === thisMonth) {
+                if(i.amount > 0) thisIncome += i.amount;
+                else thisExpense += Math.abs(i.amount);
+            } else if(m === lastMonthStr) {
+                if(i.amount > 0) lastIncome += i.amount;
+                else lastExpense += Math.abs(i.amount);
+            }
+        });
+
+        document.getElementById('last-income').innerText = lastIncome > 0 ? '¥' + lastIncome.toFixed(0) : '-';
+        document.getElementById('last-expense').innerText = lastExpense > 0 ? '¥' + lastExpense.toFixed(0) : '-';
+
+        const trendEl = document.getElementById('month-trend');
+        if(lastExpense > 0) {
+            const pct = ((thisExpense - lastExpense) / lastExpense * 100).toFixed(0);
+            const sign = pct >= 0 ? '+' : '';
+            trendEl.innerHTML = `<span class="${pct >= 0 ? 'up' : 'down'}">${sign}${pct}%</span>`;
+        } else {
+            trendEl.innerText = '-';
+        }
+    }
+
+    function animateValue(id, start, end, duration) {
+        const obj = document.getElementById(id);
+        const range = end - start;
+        let startTime = null;
+        const step = (timestamp) => {
+            if (!startTime) startTime = timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            obj.innerText = (start + progress * range).toFixed(2);
+            if (progress < 1) window.requestAnimationFrame(step);
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    function refreshCharts() {
+        const now = new Date();
+        const days = currentRange === 'week' ? 7 : 30;
+        const filtered = db.filter(i => (now - new Date(i.date)) / 86400000 <= days);
+        let inc = 0, exp = 0;
+        const lineData = [];
+        const labels = [];
+        filtered.sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(i => {
+            if(i.amount > 0) inc += i.amount; else exp += Math.abs(i.amount);
+            lineData.push(inc - exp);
+            labels.push(new Date(i.date).toLocaleDateString('zh-CN', {month:'short',day:'numeric'}));
+        });
+
+        if(lineChart) lineChart.destroy();
+        const ctxL = document.getElementById('lineChart').getContext('2d');
+        const grad = ctxL.createLinearGradient(0, 0, 0, 50);
+        grad.addColorStop(0, 'rgba(0, 122, 255, 0.25)');
+        grad.addColorStop(1, 'rgba(0, 122, 255, 0)');
+        lineChart = new Chart(ctxL, {
+            type:'line',
+            data: { labels, datasets:[{ data: lineData, borderColor:'#007aff', borderWidth:2, tension:0.4, pointRadius:0, fill:true, backgroundColor: grad }] },
+            options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{display:false},y:{display:false}} }
+        });
+
+        if(pieChart) pieChart.destroy();
+        pieChart = new Chart(document.getElementById('pieChart'), {
+            type:'doughnut',
+            data: { datasets:[{ data:[inc||1, exp||0.01], backgroundColor:['#4cd964','#ff3b30'], borderWidth:0 }] },
+            options: { cutout:'85%', maintainAspectRatio:false, plugins:{legend:{display:false}}, animation:{animateRotate:true} }
+        });
+
+        // 分类柱状图
+        if(catBarChart) catBarChart.destroy();
+        const catData = {};
+        filtered.filter(i => i.amount < 0).forEach(i => {
+            const c = i.catName;
+            catData[c] = (catData[c] || 0) + Math.abs(i.amount);
+        });
+        const sortedCats = Object.entries(catData).sort((a,b)=>b[1]-a[1]).slice(0,8);
+        const catCtx = document.getElementById('catBarChart').getContext('2d');
+        catBarChart = new Chart(catCtx, {
+            type: 'bar',
+            data: {
+                labels: sortedCats.map(([c]) => c),
+                datasets: [{
+                    data: sortedCats.map(([,v]) => v),
+                    backgroundColor: sortedCats.map(([c]) => CAT_COLORS[c] || '#888'),
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false, grid: { display: false } },
+                    y: { display: true, grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 11 } }, border: { display: false } }
+                }
+            }
+        });
+    }
+
+    function renderKB() {
+        const keys = ['1','2','3','4','5','6','7','8','9','.','0','←'];
+        const kb = document.getElementById('kb');
+        kb.innerHTML = "";
+        keys.forEach(k => {
+            const btn = document.createElement('button');
+            btn.className = 'key';
+            btn.innerText = k;
+            btn.onclick = () => {
+                if(k === '←') inputStr = inputStr.slice(0, -1);
+                else {
+                    if(k === '.' && inputStr.includes('.')) return;
+                    if(inputStr.length < 10) inputStr += k;
+                }
+                document.getElementById('display-amt').innerText = "¥ " + (inputStr || "0.00");
+            };
+            kb.appendChild(btn);
+        });
+    }
+
+    async function syncDB() { await fetch('/save_data', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(db) }); }
+
+    async function clearAllData() {
+        if(!confirm("确定清空全部历史流水？此操作不可恢复！")) return;
+        if(!confirm("再次确认：清空所有数据？")) return;
+        db = [];
+        await syncDB();
+        refresh();
+        showToast('所有数据已清空');
+    }
+
+    function exportToExcel() {
+        const ws = XLSX.utils.json_to_sheet(db.map(i => ({
+            "时间": new Date(i.date).toLocaleString(),
+            "分类": i.catName,
+            "备注": i.desc,
+            "金额": i.amount,
+            "定期": i.recurring ? '是' : '否'
+        })));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "账单");
+        XLSX.writeFile(wb, "账本_" + new Date().toLocaleDateString('zh-CN').replace(/\//g,'-') + ".xlsx");
+    }
+
+    function exportBackup() {
+        const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "账本备份_" + new Date().toLocaleDateString('zh-CN').replace(/\//g,'-') + ".json";
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('💾 备份已下载');
+    }
+
+    function importBackup(event) {
+        const file = event.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if(!Array.isArray(imported)) throw new Error('格式错误');
+                if(!confirm(`发现 ${imported.length} 条记录，确认合并导入？\n现有记录不会丢失。`)) return;
+                const existingIds = new Set(db.map(i => i.id));
+                const newItems = imported.filter(i => !existingIds.has(i.id));
+                db = [...db, ...newItems].sort((a,b)=>new Date(b.date)-new Date(a.date));
+                await syncDB();
+                refresh();
+                showToast(`成功导入 ${newItems.length} 条新记录`);
+            } catch(err) {
+                showToast('❌ 导入失败，文件格式不对');
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    }
+
+    function showToast(msg, duration = 2000) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), duration);
+    }
+
+    init();
+</script>
+</body>
+</html>
