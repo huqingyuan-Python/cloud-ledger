@@ -1,0 +1,25 @@
+# 数据文件（账本隐私数据，禁止上传）
+data.json
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# 微信开发者工具等
+.node/
