@@ -1,305 +1,112 @@
-# CyberLedger
+# 📒 云端玻璃账本
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3.8%2B-blue?style=flat-square&logo=python&logoColor=white" alt="Python">
-  <img src="https://img.shields.io/badge/Flask-2.0%2B-green?style=flat-square&logo=flask&logoColor=white" alt="Flask">
-  <img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="License">
-  <img src="https://img.shields.io/badge/Status-Stable-brightgreen?style=flat-square" alt="Status">
-</p>
-
-<p align="center">
-  <h2 align="center">⚡ CyberLedger</h2>
-  <p align="center">Modern Local Cloud Accounting System</p>
-</p>
-
-<p align="center">
-  <a href="#overview">Overview</a> •
-  <a href="#features">Features</a> •
-  <a href="#quick-start">Quick Start</a> •
-  <a href="#documentation">Documentation</a> •
-  <a href="#license">License</a>
-</p>
-
-<p align="center">
-  <strong>English</strong> | <a href="./README.zh-CN.md">简体中文</a> | <a href="./README.zh-TW.md">繁體中文</a> | <a href="./README.ja.md">日本語</a>
-</p>
+**Language / 语言 / 言語:** [简体中文](./README.md) · [English](./README-en.md) · [日本語](./README-ja.md)
 
 ---
 
-## Table of Contents
+一个基于 Flask + HTML/CSS/JS 的本地云记账网页应用。数据存储在本地文件，手机和电脑同一局域网即可访问，随时随地记账。
 
-- [Overview](#overview)
-- [Features](#features)
-- [Quick Start](#quick-start)
-- [Documentation](#documentation)
-- [Tech Stack](#tech-stack)
-- [File Structure](#file-structure)
-- [FAQ](#faq)
-- [Changelog](#changelog)
-- [Contributing](#contributing)
-- [License](#license)
+> 适合个人/小团队使用，数据完全私有，不上传任何第三方服务器。
 
 ---
 
-## Overview
+## ✨ 功能
 
-CyberLedger is a lightweight, self-hosted accounting system built with Python + Flask. No database setup, no account registration, no cloud dependency. Your phone and computer just need to be on the same network.
-
-### Why CyberLedger?
-
-| Feature | CyberLedger | Traditional Apps |
-|---------|-------------|------------------|
-| Data Storage | Local JSON | Cloud Server |
-| Privacy | 100% Private | Third-party Access |
-| Setup | No Installation | Account Required |
-| Access | LAN Only | Internet Required |
-| Cost | Free | Subscription |
-
----
-
-## Features
-
-### Core Accounting
-
-| Feature | Description |
-|---------|-------------|
-| Income/Expense Tracking | Record transactions with amount, category, date, and notes |
-| Categories | Customizable spending categories (Food, Transport, Shopping, etc.) |
-| Recurring Expenses | Mark recurring items like rent and utilities |
-| Search & Filter | Find transactions by keyword, date range, or category |
-
-### Visualization
-
-| Chart Type | Purpose |
-|------------|---------|
-| Balance Trend | Track savings/spending over time |
-| Income/Expense Pie | See where money comes from and goes |
-| Category Breakdown | Compare spending across categories |
-
-### Goal Management
-
-| Feature | Description |
-|---------|-------------|
-| Monthly Budget | Set spending limits with over-limit alerts |
-| Savings Goals | Track progress towards financial targets |
-
-### Data Management
-
-| Feature | Description |
-|---------|-------------|
-| Excel Export | Generate .xlsx reports for offline analysis |
-| JSON Backup | Export/import data backups |
-| Incremental Import | Merge new data without overwriting existing records |
+- 📱 **移动端优先** — 手机浏览器直接打开，美观的玻璃拟态 UI
+- 📊 **可视化图表** — 余额趋势折线图、收支占比饼图、分类柱状图
+- 🎯 **目标进度** — 设置攒钱目标，实时显示达成百分比
+- 💸 **月度预算** — 设置每月支出上限，超限自动警告
+- 📅 **月份对比** — 和上月同期收支对比，看钱花得更多还是更少
+- 🔄 **定期支出标记** — 标记房租、水电等重复性消费
+- 🔍 **搜索过滤** — 按备注/分类关键词快速筛选记录
+- 💾 **本地存储** — 数据保存在本地 JSON 文件，完全私有
+- 📤 **数据备份** — 一键导出 Excel 和 JSON 备份文件
+- 📥 **导入恢复** — 支持导入 JSON 备份，增量合并不覆盖
 
 ---
 
-## Quick Start
+## 📦 安装
 
-### Prerequisites
+### 环境要求
 
-- Python 3.8 or higher
-- pip (Python package manager)
+- Python 3.8+
+- Flask
 
-### Installation
+### 安装步骤
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/huqingyuan-Python/CyberLedger.git
-cd CyberLedger
+# 1. 克隆或下载本项目
+git clone https://github.com/huqingyuan-Python/cloud-ledger.git
+cd cloud-ledger
 
-# 2. Create virtual environment (recommended)
-python -m venv .venv
+# 2. 安装依赖
+pip install flask
 
-# 3. Activate virtual environment
-# On Windows:
-.venv\Scripts\activate
-# On macOS/Linux:
-source .venv/bin/activate
-
-# 4. Install dependencies
-pip install flask flask-cors colorama
-```
-
-### Usage
-
-```bash
-# Run the server
+# 3. 运行服务器
 python main.py
 ```
 
-The terminal will display:
+---
+
+## 🚀 使用
+
+启动后终端会显示访问地址：
 
 ```
 ╔══════════════════════════════════════════════════╗
-║           CyberLedger v1.0                       ║
+║  云端玻璃账本 v1.0                              ║
 ╠══════════════════════════════════════════════════╣
-║  Local:   http://127.0.0.1:5000                ║
-║  Network: http://192.168.x.x:5000              ║
+║  📍 本机访问：  http://127.0.0.1:5000          ║
+║  📱 局域网：    http://192.168.x.x:5000        ║
 ╚══════════════════════════════════════════════════╝
 ```
 
-### Access
+- **本机访问**：直接在电脑浏览器打开
+- **局域网访问**：确保手机和电脑在同一 WiFi 下，用浏览器打开局域网地址即可
 
-**On the same computer:**
-Open `http://127.0.0.1:5000` or `http://localhost:5000` in your browser.
-
-**On mobile device:**
-1. Ensure your phone and computer are on the same WiFi
-2. Note the Network address shown in terminal
-3. Open that address in your phone's browser
-
-> **Tip:** If mobile can't connect, check your firewall settings or try a different port.
-
----
-
-## Command Line Options
-
-| Option | Description | Example |
-|--------|-------------|---------|
-| `-p, --port` | Set server port (default: 5000) | `python main.py -p 8080` |
-| `--debug` | Enable debug mode (auto-reload) | `python main.py --debug` |
+### 命令行参数
 
 ```bash
-# Common usage examples
-python main.py                  # Default (port 5000)
-python main.py -p 8080          # Custom port
-python main.py --debug          # Debug mode
-python main.py -p 3000 --debug  # Custom port + debug
+python main.py -p 8080        # 指定端口为 8080
+python main.py --debug        # 开启调试模式（代码修改后自动重载）
+python main.py -p 3000 --debug
 ```
 
 ---
 
-## Documentation
-
-For detailed documentation, see:
-
-| Language | File |
-|----------|------|
-| English | README.md (this file) |
-| Simplified Chinese | README.zh-CN.md |
-| Traditional Chinese | README.zh-TW.md |
-| Japanese | README.ja.md |
-
----
-
-## Tech Stack
-
-| Layer | Technology | Purpose |
-|-------|------------|---------|
-| Backend | Python 3 | Server logic |
-| Framework | Flask | HTTP API server |
-| Frontend | HTML5/CSS3/JS | User interface |
-| Charts | Chart.js | Data visualization |
-| Excel | SheetJS | Spreadsheet export |
-| Storage | JSON | Data persistence |
-
----
-
-## File Structure
+## 📂 项目结构
 
 ```
-CyberLedger/
-|
-|-- main.py                 # Flask server & API endpoints
-|-- index.html              # Frontend application
-|-- background.png           # UI background image
-|-- data.json                # Account data (auto-created)
-|-- requirements.txt         # Python dependencies
-|
-|-- README.md                # Main documentation (English)
-|-- README.zh-CN.md          # Simplified Chinese
-|-- README.zh-TW.md          # Traditional Chinese
-|-- README.ja.md             # Japanese
-|
-|-- .gitignore               # Git ignore rules
-|-- LICENSE                  # MIT License
+cloud-ledger/
+├── main.py           # Flask 服务器后端
+├── index.html        # 前端页面（包含 HTML/CSS/JS）
+├── background.png    # 背景图片
+├── data.json         # 账单数据（自动生成，不上传 GitHub）
+├── .gitignore        # Git 忽略配置（data.json 不上传）
+└── README.md         # 本文件
 ```
 
 ---
 
-## FAQ
+## ⚙️ 数据说明
 
-### Q: Mobile shows "Connection Refused"
-
-**A:** This is usually a firewall issue. Try:
-
-1. Make sure your phone and computer are on the **same WiFi**
-2. Check Windows Firewall settings
-3. Try a different port: `python main.py -p 8080`
-
-### Q: Code changes don't take effect
-
-**A:** Run with debug mode enabled:
-
-```bash
-python main.py --debug
-```
-
-### Q: Is my data safe?
-
-**A:** Yes. All data is stored locally in `data.json`. It is never uploaded to any server.
-
-### Q: Can multiple users use it simultaneously?
-
-**A:** This is a single-user system. Concurrent writes may cause data conflicts.
+- **data.json** 由程序自动创建和管理，**不会**上传到 GitHub
+- 所有数据保存在本地，数据完全私有
+- 建议定期使用页面内的 💾 备份功能导出 JSON
 
 ---
 
-## Changelog
+## 🛠️ 技术栈
 
-### v1.0.0 (Current)
-- Initial release
-- Basic accounting features
-- Visualization charts
-- Budget and goal tracking
-- Excel/JSON export
-- Multi-language support
-
----
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+| 层级 | 技术 |
+|------|------|
+| 后端 | Python 3 + Flask |
+| 前端 | HTML5 + CSS3 + Vanilla JS |
+| 图表 | Chart.js |
+| Excel 导出 | SheetJS (xlsx) |
 
 ---
 
-## License
+## 📄 许可证
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-```
-MIT License
-
-Copyright (c) 2024 huqingyuan-Python
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-```
-
----
-
-<p align="center">
-  Made with ❤️ by <a href="https://github.com/huqingyuan-Python">huqingyuan-Python</a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/huqingyuan-Python/CyberLedger">GitHub</a> •
-  <a href="https://github.com/huqingyuan-Python/CyberLedger/issues">Issues</a>
-</p>
+MIT License — 随便用，随便改。
